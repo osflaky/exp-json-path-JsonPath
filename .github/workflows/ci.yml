@@ -1,0 +1,42 @@
+name: Java CI
+
+on:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+        - java: 21
+          os: macos-latest
+          arch: arm64
+          runner: macos-latest
+          expander_leg: macos-latest-21-arm64
+      max-parallel: 4
+    name: JDK ${{ matrix.java }} [${{ matrix.expander_leg }}]
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: Set up JDK
+      uses: actions/setup-java@v4
+      with:
+        java-version: ${{ matrix.java }}
+        distribution: ${{ matrix.distribution || 'temurin' }}
+        architecture: ${{ matrix.arch == 'arm64' && 'aarch64' || 'x64' }}
+        cache: 'gradle'
+
+    - name: Grant execute permission for gradlew
+      run: chmod +x gradlew
+
+    - name: Build with Gradle
+      run: ./gradlew build --warning-mode all
+
+    - name: Run Tests
+      run: ./gradlew check
+
+    - name: Maven Install
+      run: ./gradlew clean publishToMavenLocal
+    timeout-minutes: 150
